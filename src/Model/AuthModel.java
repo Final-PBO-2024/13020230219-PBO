@@ -1,111 +1,221 @@
 package Model;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+import Database.DatabaseConnection;
+// import Model.ActivityLogModel; // Tidak perlu jika di package yang sama
 
-public class AuthModel {
-    private Map<String, String> users; // Untuk menyimpan kredensial pengguna
-    private Map<String, Document> documents; // Untuk menyimpan dokumen
+public class AuthModel extends DatabaseConnection{
+    private ActivityLogModel activityLogModel; // LOGGING: Tambahkan field
 
-    public AuthModel() {
-        users = new HashMap<>();
-        documents = new HashMap<>();
-        users.put("admin", "password123"); // Contoh kredensial awal
+    public static class User {
+        // ... (isi kelas User tetap sama) ...
+        private int userId;
+        private String username;
+        private String email;
+        private String passwordHash;
+        private String profilePicturePath;
+
+        public User(String username, String email, String passwordHash) {
+            this.username = username;
+            this.email = email;
+            this.passwordHash = passwordHash;
+            this.profilePicturePath = null;
+        }
+
+        public User(int userId, String username, String email, String passwordHash, String profilePicturePath) {
+            this.userId = userId;
+            this.username = username;
+            this.email = email;
+            this.passwordHash = passwordHash;
+            this.profilePicturePath = profilePicturePath;
+        }
+
+        public int getUserId() { return userId; }
+        public String getUsername() { return username; }
+        public String getEmail() { return email; }
+        public String getPasswordHash() { return passwordHash; }
+        public String getProfilePicturePath() { return profilePicturePath; }
+        public void setUserId(int userId) { this.userId = userId; }
+        public void setUsername(String username) { this.username = username; }
+        public void setEmail(String email) { this.email = email; }
+        public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
+        public void setProfilePicturePath(String profilePicturePath) {
+            this.profilePicturePath = profilePicturePath;
+        }
     }
 
-    // Metode autentikasi
-    public boolean authenticate(String username, String password) {
-        if (users.containsKey(username)) {
-            return users.get(username).equals(password);
+    public AuthModel() {
+        System.out.println("AuthModel: Inisialisasi selesai.");
+        this.activityLogModel = new ActivityLogModel(); // LOGGING: Instansiasi
+    }
+       
+    public User getUserByEmailFromDb(String email) {
+        // ... (isi metode tetap sama) ...
+        String sql = "SELECT user_id, username, email, password_hash, profile_picture_path FROM users WHERE email = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, email);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return new User(
+                    rs.getInt("user_id"),
+                    rs.getString("username"),
+                    rs.getString("email"),
+                    rs.getString("password_hash"),
+                    rs.getString("profile_picture_path")
+                );
+            }
+        } catch (SQLException e) {
+            System.err.println("AuthModel.getUserByEmailFromDb Error: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public boolean authenticate(String email, String passwordInput) {
+        String sql = "SELECT password_hash FROM users WHERE email = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, email);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                String storedHash = rs.getString("password_hash");
+                // TODO: Implementasikan perbandingan hash password yang aman (misalnya menggunakan BCrypt)
+                boolean isAuthenticated = storedHash.equals(passwordInput); 
+                if (isAuthenticated) {
+                    // LOGGING: User Login
+                    activityLogModel.logActivity(email, ActivityLogModel.ActionType.USER_LOGIN, "Login berhasil.");
+                } else {
+                    // LOGGING: User Login Gagal (opsional, bisa menghasilkan banyak log)
+                    // activityLogModel.logActivity(email, ActivityLogModel.ActionType.USER_LOGIN, "Percobaan login gagal (password salah).");
+                }
+                return isAuthenticated;
+            } else {
+                // LOGGING: User Login Gagal (opsional)
+                // activityLogModel.logActivity(email, ActivityLogModel.ActionType.USER_LOGIN, "Percobaan login gagal (email tidak ditemukan).");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
         return false;
     }
 
-    // Metode registrasi
-    public boolean register(String username, String password) {
-        if (username == null || username.trim().isEmpty() || password == null || password.trim().isEmpty()) {
-            return false;
-        }
-        if (users.containsKey(username)) {
-            return false;
-        }
-        users.put(username, password);
-        return true;
+    public String getUsernameByEmail(String email) {
+        // ... (isi metode tetap sama) ...
+        User user = getUserByEmailFromDb(email);
+        return (user != null) ? user.getUsername() : null;
+    }
+    
+    public String getUserProfilePicturePath(String email) {
+        // ... (isi metode tetap sama) ...
+        User user = getUserByEmailFromDb(email);
+        return (user != null) ? user.getProfilePicturePath() : null;
     }
 
-    // Metode untuk menambahkan dokumen
-    public boolean addDocument(String name, String email, String timestamp, String filePath) {
-        System.out.println("Mencoba menambahkan dokumen: name=" + name + ", email=" + email + ", timestamp=" + timestamp + ", filePath=" + filePath);
-        if (name == null || name.trim().isEmpty() || email == null || timestamp == null || filePath == null) {
-            System.out.println("Gagal: Parameter tidak valid");
-            return false;
+    public boolean register(String username, String email, String password) {
+        // ... (validasi input tetap sama) ...
+        // ... (cek duplikasi email tetap sama) ...
+        String sql = "INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            // TODO: Implementasikan hashing password yang aman (misalnya menggunakan BCrypt)
+            String hashedPassword = password; 
+            pstmt.setString(1, username);
+            pstmt.setString(2, email);
+            pstmt.setString(3, hashedPassword); 
+            int affectedRows = pstmt.executeUpdate();
+            if (affectedRows > 0) {
+                // LOGGING: User Register
+                activityLogModel.logActivity(email, ActivityLogModel.ActionType.USER_REGISTER, "Pengguna baru '" + username + "' berhasil terdaftar.");
+                return true;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
-        if (documents.containsKey(name)) {
-            System.out.println("Gagal: Nama dokumen sudah ada");
-            return false;
-        }
-        Document doc = new Document(name, email, timestamp, filePath);
-        documents.put(name, doc);
-        System.out.println("Berhasil menambahkan dokumen. Jumlah dokumen: " + documents.size());
-        return true;
+        return false;
     }
+    
+    public boolean updateUserProfile(String email, String newUsername, String newPassword, String newProfilePicturePath) {
+        User user = getUserByEmailFromDb(email); 
+        if (user == null) { return false; }
 
-    // Metode untuk menghapus dokumen
-    public boolean removeDocument(String name) {
-        if (name == null || !documents.containsKey(name)) {
-            return false;
+        // ... (logika untuk membangun SQL UPDATE tetap sama) ...
+        boolean changed = false;
+        StringBuilder sqlBuilder = new StringBuilder("UPDATE users SET ");
+        List<Object> params = new ArrayList<>();
+        boolean firstFieldToUpdate = true;
+        String logDetails = "Memperbarui profil: ";
+        boolean usernameChanged = false;
+        boolean passwordChanged = false;
+        boolean pictureChanged = false;
+
+
+        if (newUsername != null && !newUsername.trim().isEmpty() && !newUsername.trim().equals(user.getUsername())) {
+            sqlBuilder.append("username = ?");
+            params.add(newUsername.trim());
+            firstFieldToUpdate = false;
+            changed = true;
+            logDetails += "Username diubah menjadi '" + newUsername.trim() + "'. ";
+            usernameChanged = true;
         }
-        documents.remove(name);
-        return true;
-    }
-
-    // Metode untuk memperbarui dokumen (nama dan isi file)
-    public boolean updateDocument(String oldName, String newName, String email, String timestamp, String newContent) {
-        if (oldName == null || !documents.containsKey(oldName) || email == null || timestamp == null || newContent == null) {
-            System.out.println("Gagal memperbarui: Parameter tidak valid atau dokumen tidak ditemukan");
-            return false;
-        }
-        if (newName == null || newName.trim().isEmpty()) {
-            System.out.println("Gagal memperbarui: Nama baru tidak valid");
-            return false;
-        }
-
-        // Jika nama baru berbeda dan sudah ada di dokumen lain, tolak pembaruan
-        if (!oldName.equals(newName) && documents.containsKey(newName)) {
-            System.out.println("Gagal memperbarui: Nama baru sudah digunakan");
-            return false;
-        }
-
-        // Ambil dokumen lama
-        Document oldDoc = documents.get(oldName);
-        String filePath = oldDoc.getFilePath();
-
-        try {
-            // Tulis konten baru ke file yang sama
-            Files.write(Paths.get(filePath), newContent.getBytes());
-            System.out.println("Berhasil menulis konten baru ke: " + filePath);
-        } catch (IOException e) {
-            System.out.println("Gagal menulis ke file: " + e.getMessage());
-            return false;
+        
+        if (newPassword != null && !newPassword.isEmpty()) {
+            if (!firstFieldToUpdate) sqlBuilder.append(", ");
+            sqlBuilder.append("password_hash = ?");
+            // TODO: Implementasikan hashing password yang aman (misalnya menggunakan BCrypt)
+            params.add(newPassword); 
+            firstFieldToUpdate = false;
+            changed = true;
+            logDetails += "Password diubah. ";
+            passwordChanged = true;
         }
 
-        // Buat dokumen baru dengan data yang diperbarui
-        Document newDoc = new Document(newName, email, timestamp, filePath);
-        // Hapus entri lama jika nama berubah
-        if (!oldName.equals(newName)) {
-            documents.remove(oldName);
+        if (newProfilePicturePath != null) { 
+            String pathToSaveToDb = newProfilePicturePath.isEmpty() ? null : newProfilePicturePath;
+            boolean pathIsDifferent = (user.getProfilePicturePath() == null && pathToSaveToDb != null) ||
+                                      (user.getProfilePicturePath() != null && !user.getProfilePicturePath().equals(pathToSaveToDb)) ||
+                                      (user.getProfilePicturePath() != null && pathToSaveToDb == null);
+            if (pathIsDifferent) {
+                if (!firstFieldToUpdate) sqlBuilder.append(", ");
+                sqlBuilder.append("profile_picture_path = ?"); 
+                params.add(pathToSaveToDb);
+                changed = true;
+                logDetails += (pathToSaveToDb == null) ? "Foto profil dihapus. " : "Foto profil diubah. ";
+                pictureChanged = true;
+            }
         }
-        // Tambahkan entri baru
-        documents.put(newName, newDoc);
-        System.out.println("Berhasil memperbarui dokumen: " + oldName + " menjadi " + newName);
-        return true;
-    }
+        
+        if (!changed) { 
+            return true; 
+        }
 
-    // Metode untuk mendapatkan daftar dokumen
-    public Map<String, Document> getDocuments() {
-        return new HashMap<>(documents); // Kembalikan salinan untuk keamanan
+        sqlBuilder.append(" WHERE email = ?");
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sqlBuilder.toString())) {
+            // ... (set parameter pstmt) ...
+            int paramIndex = 1;
+            for (Object param : params) {
+                 if (param == null) {
+                    pstmt.setNull(paramIndex++, Types.VARCHAR);
+                } else {
+                    pstmt.setObject(paramIndex++, param); 
+                }
+            }
+            pstmt.setString(paramIndex, email); 
+            
+            int affectedRows = pstmt.executeUpdate();
+            if (affectedRows > 0) {
+                // LOGGING: Update User Profile
+                activityLogModel.logActivity(email, ActivityLogModel.ActionType.UPDATE_USER_PROFILE, logDetails.trim());
+                return true;
+            }
+        } catch (SQLException e) {
+            System.err.println("AuthModel.updateUserProfile Error: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return false; 
     }
 }

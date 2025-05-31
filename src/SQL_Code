@@ -1,0 +1,64 @@
+
+CREATE DATABASE IF NOT EXISTS `document_management_app_db`
+CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- Pilih database yang akan digunakan
+USE `document_management_app_db`;
+
+-- 2. Membuat Tabel `users`
+-- Tabel ini akan menyimpan informasi pengguna
+-- Menggunakan path untuk foto profil
+CREATE TABLE IF NOT EXISTS `users` (
+    `user_id` INT AUTO_INCREMENT PRIMARY KEY,
+    `username` VARCHAR(100) NOT NULL UNIQUE,
+    `email` VARCHAR(150) NOT NULL UNIQUE,
+    `password_hash` VARCHAR(255) NOT NULL, -- Simpan HASH password, bukan password asli!
+    `profile_picture_path` VARCHAR(1024) NULL, -- Path ke file foto profil
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 3. Membuat Tabel `documents`
+-- Tabel ini akan menyimpan informasi tentang dokumen.
+-- Menggunakan pendekatan PATH FILE.
+CREATE TABLE IF NOT EXISTS `documents` (
+    `document_id` INT AUTO_INCREMENT PRIMARY KEY,
+    `owner_user_id` INT NOT NULL,                      -- ID pengguna yang memiliki dokumen
+    `document_name` VARCHAR(255) NOT NULL,             -- Nama dokumen
+    `file_path` VARCHAR(1024) NOT NULL,                -- Path ke lokasi file di sistem file
+    `file_type` VARCHAR(100) NULL,                     -- Tipe MIME file (mis. "text/plain", "application/pdf")
+    `file_size` INT NULL,                              -- Ukuran file dalam byte (opsional, bisa didapat dari file fisik)
+    `timestamp_created` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `timestamp_modified` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `is_deleted` BOOLEAN DEFAULT FALSE,                -- Untuk fitur recycle bin (soft delete)
+    `deleted_timestamp` TIMESTAMP NULL,                -- Waktu ketika dokumen di-soft-delete
+    FOREIGN KEY (`owner_user_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE -- Jika user dihapus, dokumennya juga
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 4. Membuat Tabel `document_access`
+-- Tabel ini untuk mengatur siapa saja yang memiliki akses ke dokumen tertentu
+CREATE TABLE IF NOT EXISTS `document_access` (
+    `access_id` INT AUTO_INCREMENT PRIMARY KEY,
+    `document_id` INT NOT NULL,                        -- ID dokumen yang diakses
+    `user_id_shared_with` INT NOT NULL,                -- ID pengguna yang diberi akses
+    `access_type` VARCHAR(50) NOT NULL,                -- Tipe akses (misalnya "read", "read-write", "owner")
+    `timestamp_granted` TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Kapan akses diberikan
+    FOREIGN KEY (`document_id`) REFERENCES `documents`(`document_id`) ON DELETE CASCADE, -- Jika dokumen dihapus, aksesnya juga
+    FOREIGN KEY (`user_id_shared_with`) REFERENCES `users`(`user_id`) ON DELETE CASCADE, -- Jika user yang diberi akses dihapus, entri aksesnya juga
+    UNIQUE KEY `unique_document_user_access` (`document_id`, `user_id_shared_with`) -- Mencegah duplikasi hak akses
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+SELECT 'Skrip SQL untuk pembuatan database dan tabel `users`, `documents`, dan `document_access` selesai dijalankan.' AS Status;
+
+CREATE TABLE activity_logs (
+    log_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_email VARCHAR(255) NOT NULL,
+    action_type VARCHAR(50) NOT NULL, -- Misal: ADD_DOCUMENT, UPDATE_DOCUMENT_CONTENT, SHARE_DOCUMENT, dll.
+    document_id INT NULL,             -- ID dokumen yang terpengaruh, jika ada
+    target_document_name VARCHAR(255) NULL, -- Nama dokumen yang terpengaruh
+    activity_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    details TEXT NULL,                -- Detail tambahan tentang aktivitas
+    FOREIGN KEY (document_id) REFERENCES documents(document_id) ON DELETE SET NULL, -- Opsional, tergantung skema Anda
+    INDEX idx_user_email (user_email),
+    INDEX idx_action_type (action_type),
+    INDEX idx_activity_timestamp (activity_timestamp)
+);

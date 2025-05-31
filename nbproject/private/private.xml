@@ -3,10 +3,17 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
-            <file>file:/D:/Tugas/Java/DocumentManagement/src/Main.java</file>
-            <file>file:/D:/Tugas/Java/DocumentManagement/src/View/AuthView.java</file>
+            <file>file:/D:/Tugas/Java/DocumentManagement/src/Controller/UpdateDocumentController.java</file>
+            <file>file:/D:/Tugas/Java/DocumentManagement/src/Controller/SharedDocumentController.java</file>
+            <file>file:/D:/Tugas/Java/DocumentManagement/src/Controller/DocumentController.java</file>
+            <file>file:/D:/Tugas/Java/DocumentManagement/src/View/DocumentView.java</file>
+            <file>file:/D:/Tugas/Java/DocumentManagement/src/View/FileUpdater.java</file>
             <file>file:/D:/Tugas/Java/DocumentManagement/src/Model/AuthModel.java</file>
+            <file>file:/D:/Tugas/Java/DocumentManagement/src/Controller/DashboardController.java</file>
+            <file>file:/D:/Tugas/Java/DocumentManagement/src/Controller/UpdateProfileController.java</file>
+            <file>file:/D:/Tugas/Java/DocumentManagement/src/Database/DatabaseConnection.java</file>
             <file>file:/D:/Tugas/Java/DocumentManagement/src/Controller/AuthController.java</file>
+            <file>file:/D:/Tugas/Java/DocumentManagement/src/Model/DocumentModel.java</file>
         </group>
     </open-files>
 </project-private>

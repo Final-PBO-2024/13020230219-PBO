@@ -2,83 +2,201 @@ package Controller;
 
 import Model.AuthModel;
 import View.DashboardView;
-import View.EditProfileView;
 import View.ProfileView;
-
-import javax.swing.*;
-
-import java.awt.Component;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import View.UpdateProfileView; // Import jika belum
+import Controller.UpdateProfileController; // Import jika belum
+import java.awt.Frame;
+import javax.swing.JOptionPane;
 
 public class ProfileController {
-    private AuthModel model;
-    private ProfileView view;
+    private ProfileView profileView;
+    private AuthModel authModel;
     private DashboardView dashboardView;
+    private String currentUserEmail;
+    private String currentUsername;
 
-    public ProfileController(AuthModel model, ProfileView view, DashboardView dashboardView) {
-        this.model = model;
-        this.view = view;
-        this.dashboardView = dashboardView;
-        initController();
+    // Tambahkan field untuk UpdateProfileView dan UpdateProfileController
+    private UpdateProfileView updateProfileView;
+    private UpdateProfileController updateProfileController;
+
+    public ProfileController(ProfileView pView, AuthModel model, DashboardView dView, String userEmail) {
+        this.profileView = pView;
+        this.authModel = model;
+        this.dashboardView = dView;
+        this.currentUserEmail = userEmail;
+
+        initProfileViewListeners();
+        loadUserProfile();
     }
 
-    private void initController() {
-        view.getBackButton().addActionListener(e -> {
-            System.out.println("Tombol DASHBOARD diklik");
-            if (view.getProfileFrame().isVisible()) {
-                view.getProfileFrame().setVisible(false);
-            }
-            if (dashboardView != null && dashboardView.getDashboardFrame() != null) {
-                dashboardView.getDashboardFrame().setVisible(true);
-            }
-        });
+    private void initProfileViewListeners() {
+        if (profileView.getBackToDashboardButton() != null) {
+            profileView.getBackToDashboardButton().addActionListener(e -> {
+                profileView.setVisible(false);
+                if (dashboardView != null) {
+                    dashboardView.getDashboardFrame().setExtendedState(Frame.MAXIMIZED_BOTH);
+                    dashboardView.getDashboardFrame().setVisible(true);
+                    // Jika DashboardController memiliki method loadInitialDashboardData() yang
+                    // public
+                    // dan Anda memiliki cara untuk mendapatkan instance DashboardController di
+                    // sini, Anda bisa memanggilnya.
+                    // Object dashController = getDashboardControllerInstance(); // Placeholder
+                    // if (dashController instanceof DashboardController) {
+                    // ((DashboardController) dashController).loadInitialDashboardData();
+                    // }
+                } else {
+                    System.err.println("Error di ProfileController: Referensi DashboardView null, tidak bisa kembali.");
+                    profileView.getProfileFrame().dispose();
+                }
+            });
+        } else {
+            System.err
+                    .println("Peringatan di ProfileController: Tombol BackToDashboard di ProfileView tidak ditemukan.");
+        }
 
-        view.getFriendsButton().addActionListener(e -> System.out.println("Tombol List Teman diklik"));
-        view.getLoginHistoryButton().addActionListener(e -> System.out.println("Tombol Riwayat Login diklik"));
-        view.getUserButton().addActionListener(e -> System.out.println("Tombol User diklik"));
-        view.getSettingsButton().addActionListener(e -> System.out.println("Tombol Pengaturan diklik"));
-        view.getProfileButton().addActionListener(e -> System.out.println("Tombol Profile diklik"));
+        if (profileView.getUbahProfileButton() != null) {
+            profileView.getUbahProfileButton().addActionListener(e -> handleNavigateToUpdateProfileView());
+        } else {
+            System.err.println("Peringatan di ProfileController: Tombol Ubah Profile di ProfileView tidak ditemukan.");
+        }
 
-        // Tambahkan aksi untuk tombol Ubah Profile
-        view.getEditProfileButton().addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                System.out.println("Tombol Ubah Profile diklik");
+        if (profileView.getLogoutButton() != null) {
+            profileView.getLogoutButton().addActionListener(e -> {
+                System.out.println("DEBUG: Tombol Logout dari ProfileView ditekan.");
+                profileView.setVisible(false);
 
-                // Buka EditProfileView
-                EditProfileView editView = new EditProfileView(
-                        view.getProfileFrame(),
-                        view.getUsernameLabel().getText(),
-                        view.getEmailLabel().getText(),
-                        view.getPhotoLabel().getText());
+                if (dashboardView != null) {
+                    dashboardView.getDashboardFrame().setVisible(false);
 
-                // Aksi untuk tombol Simpan di EditProfileView
-                editView.getSaveButton().addActionListener(saveEvent -> {
-                    String newUsername = editView.getUsernameField().getText();
-                    String newEmail = editView.getEmailField().getText();
-                    String photoPath = editView.getPhotoPathLabel().getText();
-
-                    if (newUsername != null && !newUsername.trim().isEmpty() && newEmail != null
-                            && !newEmail.trim().isEmpty()) {
-                        view.getUsernameLabel().setText("Username: " + newUsername);
-                        view.getEmailLabel().setText("Email: " + newEmail);
-                        view.getPhotoLabel()
-                                .setText("Foto: " + (photoPath.equals("Belum dipilih") ? "belum diunggah" : photoPath));
-                        JOptionPane.showMessageDialog(editView.getEditDialog(), "Profile berhasil diperbarui!");
-                        editView.getEditDialog().dispose();
+                    if (dashboardView.getLogoutButton().getActionListeners().length > 0) {
+                        dashboardView.getLogoutButton().doClick();
                     } else {
-                        JOptionPane.showMessageDialog(editView.getEditDialog(),
-                                "Username dan Email tidak boleh kosong!");
+                        System.err.println(
+                                "Tidak bisa memicu logout dari DashboardController via ProfileController. Kembali ke AuthView secara manual (jika ada referensi) atau exit.");
+                        // Jika AuthView bisa diakses dari sini (TIDAK IDEAL):
+                        // AuthView authViewInstance = getAuthViewInstance(); // Perlu cara mendapatkan
+                        // ini
+                        // if (authViewInstance != null)
+                        // authViewInstance.getLoginFrame().setVisible(true);
+                        // else System.exit(0);
+                        System.exit(0); // Darurat
                     }
-                });
+                } else {
+                    System.err.println(
+                            "DashboardView null, tidak bisa logout dengan benar dari ProfileView. Menutup aplikasi.");
+                    System.exit(0);
+                }
+            });
+        } else {
+            System.err.println("Peringatan di ProfileController: Tombol Logout di ProfileView tidak ditemukan.");
+        }
 
-                editView.getEditDialog().setVisible(true);
-            }
-        });
+        if (profileView.getManageDocumentsButton() != null) {
+            profileView.getManageDocumentsButton().addActionListener(e -> {
+                System.out.println("DEBUG: Tombol Kelola Dokumen dari ProfileView ditekan.");
+                // Logika navigasi: Sembunyikan ProfileView, tampilkan DashboardView,
+                // lalu minta DashboardController untuk navigasi ke DocumentView.
+                profileView.setVisible(false);
+                if (dashboardView != null) {
+                    dashboardView.getDashboardFrame().setExtendedState(Frame.MAXIMIZED_BOTH);
+                    dashboardView.getDashboardFrame().setVisible(true);
+
+                    // Cara untuk memicu navigasi ke DocumentView dari DashboardController
+                    // Ini memerlukan DashboardController memiliki method publik untuk ini,
+                    // atau tombol Document di DashboardView di-trigger.
+                    Object dashController = getDashboardControllerInstance(); // Anda perlu cara mendapatkan ini
+                    if (dashController instanceof DashboardController) {
+                        // Asumsi DashboardController punya method untuk langsung ke DocumentView
+                        // ((DashboardController) dashController).handleNavigateToDocumentView();
+                        // Atau trigger tombolnya
+                        if (dashboardView.getDocumentButton() != null
+                                && dashboardView.getDocumentButton().getActionListeners().length > 0) {
+                            dashboardView.getDocumentButton().doClick();
+                        } else {
+                            JOptionPane.showMessageDialog(profileView.getProfileFrame(),
+                                    "Fungsi Kelola Dokumen belum siap dari sini.");
+                        }
+                    } else {
+                        JOptionPane.showMessageDialog(profileView.getProfileFrame(),
+                                "Tidak bisa navigasi ke Kelola Dokumen.");
+                    }
+                }
+            });
+        }
+
     }
 
-    public ProfileView getProfileView() {
-        return view;
+    public void loadUserProfile() {
+        System.out.println("DEBUG ProfileController: Memulai loadUserProfile untuk email: " + currentUserEmail);
+        if (currentUserEmail != null && !currentUserEmail.isEmpty() && authModel != null && profileView != null) {
+            this.currentUsername = authModel.getUsernameByEmail(currentUserEmail);
+
+            if (this.currentUsername == null || this.currentUsername.isEmpty()) {
+                this.currentUsername = currentUserEmail.split("@")[0];
+                System.out.println("Peringatan di ProfileController: Username dari model null untuk email "
+                        + currentUserEmail + ". Menggunakan bagian email sebagai fallback.");
+            }
+
+            profileView.setUsername(this.currentUsername);
+            profileView.setEmail(currentUserEmail);
+
+            String imagePathFromModel = authModel.getUserProfilePicturePath(currentUserEmail);
+            System.out.println("DEBUG ProfileController.loadUserProfile: Path foto dari model: " + imagePathFromModel);
+            profileView.loadProfilePicture(imagePathFromModel);
+
+        } else {
+            if (profileView != null) {
+                profileView.setUsername("Data Tidak Tersedia");
+                profileView.setEmail("Data Tidak Tersedia");
+                profileView.loadProfilePicture(null);
+            }
+            System.err.println("Tidak bisa memuat profil di ProfileController: data tidak lengkap.");
+        }
+    }
+
+    public void updateUserProfileData(String userEmail) {
+        System.out
+                .println("DEBUG ProfileController: Menerima panggilan updateUserProfileData untuk email: " + userEmail);
+        this.currentUserEmail = userEmail; // Update email jika berubah (biasanya tidak untuk user yang sama)
+        loadUserProfile();
+    }
+
+    private void handleNavigateToUpdateProfileView() {
+        if (currentUserEmail == null || currentUserEmail.isEmpty()) {
+            JOptionPane.showMessageDialog(profileView.getProfileFrame(),
+                    "Tidak dapat membuka form ubah profil, data pengguna tidak valid.",
+                    "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        profileView.setVisible(false);
+
+        String username = this.currentUsername; // Gunakan username yang sudah dimuat
+
+        String currentProfilePicturePath = authModel.getUserProfilePicturePath(currentUserEmail);
+        if (currentProfilePicturePath == null || currentProfilePicturePath.isEmpty()) {
+            currentProfilePicturePath = "placeholder/default_avatar.png"; // Ganti dengan path default Anda
+        }
+
+        if (updateProfileView == null) {
+            updateProfileView = new UpdateProfileView(username, currentUserEmail, currentProfilePicturePath);
+            // Teruskan ProfileController ini (this) ke UpdateProfileController
+            updateProfileController = new UpdateProfileController(updateProfileView, authModel, profileView, this,
+                    currentUserEmail, currentProfilePicturePath);
+        } else {
+            updateProfileView.setUsername(username);
+            updateProfileView.setEmail(currentUserEmail);
+            updateProfileView.loadProfilePicture(currentProfilePicturePath);
+            if (updateProfileController != null) {
+                // Update juga parent controller jika diperlukan
+                updateProfileController.setCurrentUserData(currentUserEmail, currentProfilePicturePath);
+            }
+        }
+        updateProfileView.setVisible(true);
+    }
+
+    // Placeholder - bagaimana Anda mendapatkan instance DashboardController akan
+    // bergantung pada arsitektur Anda
+    private Object getDashboardControllerInstance() {
+        return null;
     }
 }

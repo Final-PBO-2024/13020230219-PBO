@@ -1,9 +1,12 @@
 package View;
 
 import java.awt.BorderLayout;
+import java.awt.CardLayout;
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Cursor;
 import java.awt.Dimension;
+import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.GridLayout;
 
@@ -17,202 +20,391 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.SwingConstants;
+import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableCellRenderer; // Untuk header renderer
+import javax.swing.UIManager; // Untuk default border header
+
 
 public class DashboardView {
     private JFrame dashboardFrame;
     private JButton logoutButton;
     private JButton documentButton;
-    private JButton friendsButton;
-    private JButton loginHistoryButton;
-    private JButton userButton;
-    private JButton settingsButton;
-    private JButton profileButton;
-    private JButton refreshButton; // Tombol baru untuk menyegarkan tabel
-    private JTable activityTable; // Tabel untuk riwayat aktivitas
-    private DefaultTableModel tableModel; // Model tabel yang dapat diubah
-    private JLabel userLabel; // Label untuk menampilkan username
+    private JButton recycleBinButton;
+    private JButton refreshButton;
+    private JButton profileButton; // Tombol Profile
+    private JButton sharedDocumentsButton; // Tombol Shared Documents
+
+    private JLabel userLabel;
+    private JLabel cardJumlahDokumenValue;
+    private JLabel cardAccessValue;
+
+    private JPanel mainContentArea;
+    private CardLayout cardLayout;
+
+    private JPanel activityPanel;
+    private JTable activityTable;
+    private DefaultTableModel activityTableModel;
+
+    private JPanel recycleBinPanel;
+    private JTable recycleBinTable;
+    private DefaultTableModel recycleBinTableModel;
+    private JButton restoreButton;
+    private JButton permanentDeleteButton;
+
+    // Konstanta Warna Baru (terinspirasi gambar Anda)
+    private final Color COLOR_SIDEBAR_BG_NEW = new Color(68, 78, 96); 
+    private final Color COLOR_SIDEBAR_BUTTON_BG_NEW = new Color(238, 238, 238); 
+    private final Color COLOR_SIDEBAR_BUTTON_HOVER_BG_NEW = new Color(220, 220, 225); 
+    private final Color COLOR_SIDEBAR_BUTTON_TEXT_NEW = new Color(50, 50, 70); 
+    private final Color COLOR_SIDEBAR_USER_LABEL_TEXT = Color.WHITE;
+
+    private final Color COLOR_BUTTON_TEXT_LIGHT = Color.WHITE;
+    private final Color COLOR_BUTTON_TEXT_DARK = new Color(52, 58, 64); 
+
+    private final Color COLOR_PRIMARY_ACTION_BG = new Color(0, 123, 255);
+    private final Color COLOR_SUCCESS_ACTION_BG = new Color(40, 167, 69);
+    private final Color COLOR_WARNING_ACTION_BG = new Color(255, 193, 7);
+    private final Color COLOR_DANGER_ACTION_BG = new Color(220, 53, 69);
+    private final Color COLOR_TABLE_HEADER_BG = new Color(52, 58, 64);
+    private final Color COLOR_TABLE_HEADER_FG = Color.WHITE;
+
+
+    private final Font FONT_SIDEBAR_BUTTON = new Font("Segoe UI", Font.BOLD, 13); 
+    private final Font FONT_USER_LABEL = new Font("Segoe UI", Font.BOLD, 18); 
+    private final Font FONT_ACTION_BUTTON = new Font("Segoe UI", Font.BOLD, 13);
+    private final Font FONT_TITLE_VIEW = new Font("Segoe UI", Font.BOLD, 18);
+    private final Font FONT_TABLE_HEADER_CUSTOM = new Font("Segoe UI", Font.BOLD, 14);
+    private final Font FONT_TABLE_CELL_CUSTOM = new Font("Segoe UI", Font.PLAIN, 13);
+
 
     public DashboardView(String username) {
-        dashboardFrame = new JFrame("Dashboard");
+        dashboardFrame = new JFrame("Dashboard - " + username);
         dashboardFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        dashboardFrame.setSize(800, 500);
+        dashboardFrame.setSize(1024, 768); // Ukuran sedikit lebih besar
         dashboardFrame.setLocationRelativeTo(null);
-        dashboardFrame.setLayout(new BorderLayout(10, 10));
-        dashboardFrame.setVisible(false);
+        dashboardFrame.setLayout(new BorderLayout(0, 0)); // Hapus gap jika tidak perlu
+        dashboardFrame.getContentPane().setBackground(new Color(240, 240, 240));
 
-        // Sidebar
-        JPanel sidebar = new JPanel();
-        sidebar.setBackground(new Color(30, 30, 30));
-        sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.Y_AXIS));
-        sidebar.setPreferredSize(new Dimension(200, 0));
-
-        userLabel = new JLabel("Selamat datang, " + username); // Menampilkan username
-        userLabel.setForeground(Color.WHITE);
-        userLabel.setFont(new Font("Arial", Font.BOLD, 14));
-        userLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        sidebar.add(userLabel);
-        sidebar.add(Box.createRigidArea(new Dimension(0, 10)));
-
-        JLabel adminLabel = new JLabel("Administrator");
-        adminLabel.setForeground(Color.WHITE);
-        adminLabel.setFont(new Font("Arial", Font.BOLD, 16));
-        adminLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        sidebar.add(adminLabel);
-        sidebar.add(Box.createRigidArea(new Dimension(0, 20)));
-
-        documentButton = new JButton("Kelola Dokumen");
-        documentButton.setBackground(new Color(30, 30, 30));
-        documentButton.setForeground(Color.WHITE);
-        documentButton.setFont(new Font("Arial", Font.PLAIN, 14));
-        documentButton.setAlignmentX(Component.CENTER_ALIGNMENT);
-        sidebar.add(documentButton);
-
-        friendsButton = new JButton("List Teman");
-        friendsButton.setBackground(new Color(30, 30, 30));
-        friendsButton.setForeground(Color.WHITE);
-        friendsButton.setFont(new Font("Arial", Font.PLAIN, 14));
-        friendsButton.setAlignmentX(Component.CENTER_ALIGNMENT);
-        sidebar.add(friendsButton);
-
-        loginHistoryButton = new JButton("Riwayat Login");
-        loginHistoryButton.setBackground(new Color(30, 30, 30));
-        loginHistoryButton.setForeground(Color.WHITE);
-        loginHistoryButton.setFont(new Font("Arial", Font.PLAIN, 14));
-        loginHistoryButton.setAlignmentX(Component.CENTER_ALIGNMENT);
-        sidebar.add(loginHistoryButton);
-
-        userButton = new JButton("User");
-        userButton.setBackground(new Color(30, 30, 30));
-        userButton.setForeground(Color.WHITE);
-        userButton.setFont(new Font("Arial", Font.PLAIN, 14));
-        userButton.setAlignmentX(Component.CENTER_ALIGNMENT);
-        sidebar.add(userButton);
-
-        settingsButton = new JButton("Pengaturan");
-        settingsButton.setBackground(new Color(30, 30, 30));
-        settingsButton.setForeground(Color.WHITE);
-        settingsButton.setFont(new Font("Arial", Font.PLAIN, 14));
-        settingsButton.setAlignmentX(Component.CENTER_ALIGNMENT);
-        sidebar.add(settingsButton);
-
-        profileButton = new JButton("Profile");
-        profileButton.setBackground(new Color(30, 30, 30));
-        profileButton.setForeground(Color.WHITE);
-        profileButton.setFont(new Font("Arial", Font.PLAIN, 14));
-        profileButton.setAlignmentX(Component.CENTER_ALIGNMENT);
-        sidebar.add(profileButton);
-
-        sidebar.add(Box.createRigidArea(new Dimension(0, 20)));
-
-        logoutButton = new JButton("Keluar");
-        logoutButton.setBackground(Color.RED);
-        logoutButton.setForeground(Color.WHITE);
-        logoutButton.setAlignmentX(Component.CENTER_ALIGNMENT);
-        sidebar.add(logoutButton);
-
-        // Tombol Refresh
-        refreshButton = new JButton("Segarkan");
-        refreshButton.setBackground(new Color(30, 30, 30));
-        refreshButton.setForeground(Color.WHITE);
-        refreshButton.setFont(new Font("Arial", Font.PLAIN, 14));
-        refreshButton.setAlignmentX(Component.CENTER_ALIGNMENT);
-        sidebar.add(refreshButton);
-
-        // Panel Konten
-        JPanel contentPanel = new JPanel(new BorderLayout(10, 10));
-        contentPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-
-        JPanel headerPanel = new JPanel(new GridLayout(1, 2, 10, 0));
-        headerPanel.add(createInfoCard("Jumlah Dokumen", "2"));
-        headerPanel.add(createInfoCard("Access", "2"));
-        contentPanel.add(headerPanel, BorderLayout.NORTH);
-
-        JPanel tablePanel = new JPanel(new BorderLayout());
-        JLabel tableTitle = new JLabel("Riwayat Aktivitas");
-        tableTitle.setFont(new Font("Arial", Font.BOLD, 16));
-        tablePanel.add(tableTitle, BorderLayout.NORTH);
-
-        // Inisialisasi tabel dengan model dinamis
-        String[] columnNames = {"Aktivitas", "Tanggal", "Waktu"};
-        tableModel = new DefaultTableModel(columnNames, 0); // Model kosong
-        activityTable = new JTable(tableModel);
-        activityTable.setFillsViewportHeight(true);
-        JScrollPane scrollPane = new JScrollPane(activityTable);
-        tablePanel.add(scrollPane, BorderLayout.CENTER);
-
-        // Data statis awal (bisa diganti oleh controller)
-        addActivity("Menambah File", "2025-04-23", "23:00");
-        addActivity("Mengubah Isi 'excel.xlsx'", "2025-04-23", "23:00");
-
-        contentPanel.add(tablePanel, BorderLayout.CENTER);
-
+        JPanel sidebar = createSidebar(username);
         dashboardFrame.add(sidebar, BorderLayout.WEST);
-        dashboardFrame.add(contentPanel, BorderLayout.CENTER);
+
+        cardLayout = new CardLayout();
+        mainContentArea = new JPanel(cardLayout);
+        mainContentArea.setBackground(Color.WHITE);
+
+        activityPanel = createActivityPanel();
+        recycleBinPanel = createRecycleBinPanel();
+
+        mainContentArea.add(activityPanel, "ActivityPanel");
+        mainContentArea.add(recycleBinPanel, "RecycleBinPanel");
+
+        dashboardFrame.add(mainContentArea, BorderLayout.CENTER);
+        cardLayout.show(mainContentArea, "ActivityPanel");
     }
 
-    private JPanel createInfoCard(String title, String value) {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(Color.LIGHT_GRAY);
-        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+    private JPanel createSidebar(String username) {
+        JPanel sidebar = new JPanel();
+        sidebar.setBackground(COLOR_SIDEBAR_BG_NEW);
+        sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.Y_AXIS));
+        sidebar.setPreferredSize(new Dimension(260, 0)); // Lebar sidebar disesuaikan
+        sidebar.setBorder(BorderFactory.createEmptyBorder(20, 15, 20, 15));
 
-        JLabel titleLabel = new JLabel(title, SwingConstants.CENTER);
-        titleLabel.setFont(new Font("Arial", Font.PLAIN, 14));
+        userLabel = new JLabel("Halo, " + username + "!");
+        userLabel.setForeground(COLOR_SIDEBAR_USER_LABEL_TEXT);
+        userLabel.setFont(FONT_USER_LABEL);
+        userLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        userLabel.setBorder(BorderFactory.createEmptyBorder(0, 5, 20, 0));
+        sidebar.add(userLabel);
+
+        documentButton = createSidebarButtonStyled("Kelola Dokumen");
+        sidebar.add(documentButton);
+        sidebar.add(Box.createRigidArea(new Dimension(0, 10)));
+
+        sharedDocumentsButton = createSidebarButtonStyled("Shared Documents"); // Tombol baru
+        sidebar.add(sharedDocumentsButton);
+        sidebar.add(Box.createRigidArea(new Dimension(0, 10)));
+
+        recycleBinButton = createSidebarButtonStyled("Recycle Bin");
+        sidebar.add(recycleBinButton);
+        sidebar.add(Box.createRigidArea(new Dimension(0, 10)));
+        
+        refreshButton = createSidebarButtonStyled("Segarkan Aktivitas");
+        sidebar.add(refreshButton);
+        sidebar.add(Box.createRigidArea(new Dimension(0, 10)));
+        
+        profileButton = createSidebarButtonStyled("Profil Saya"); // Tombol Profile
+        sidebar.add(profileButton);
+        
+        sidebar.add(Box.createVerticalGlue());
+
+        logoutButton = new JButton(" Keluar");
+        styleDangerButton(logoutButton);
+        logoutButton.setAlignmentX(Component.LEFT_ALIGNMENT);
+        logoutButton.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        sidebar.add(logoutButton);
+        sidebar.add(Box.createRigidArea(new Dimension(0, 10)));
+
+        return sidebar;
+    }
+    
+    private JButton createSidebarButtonStyled(String text) {
+        JButton button = new JButton(text);
+        button.setForeground(COLOR_SIDEBAR_BUTTON_TEXT_NEW);
+        button.setBackground(COLOR_SIDEBAR_BUTTON_BG_NEW);
+        button.setFont(FONT_SIDEBAR_BUTTON);
+        button.setAlignmentX(Component.LEFT_ALIGNMENT);
+        button.setHorizontalAlignment(SwingConstants.LEFT);
+        button.setFocusPainted(false);
+        button.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(180,180,180), 1),
+            BorderFactory.createEmptyBorder(10, 15, 10, 15)
+        ));
+        button.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        button.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                button.setBackground(COLOR_SIDEBAR_BUTTON_HOVER_BG_NEW);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                button.setBackground(COLOR_SIDEBAR_BUTTON_BG_NEW);
+            }
+        });
+        return button;
+    }
+
+    private JPanel createActivityPanel() {
+        JPanel panel = new JPanel(new BorderLayout(10,10));
+        panel.setBorder(new EmptyBorder(15, 15, 15, 15));
+        panel.setBackground(Color.WHITE);
+
+        JPanel headerPanel = new JPanel(new GridLayout(1, 2, 15, 0));
+        headerPanel.setOpaque(false);
+        
+        cardJumlahDokumenValue = new JLabel("0");
+        cardAccessValue = new JLabel("0");
+        headerPanel.add(createInfoCard("Dokumen Aktif", cardJumlahDokumenValue));
+        headerPanel.add(createInfoCard("Total Akses", cardAccessValue));
+        panel.add(headerPanel, BorderLayout.NORTH);
+
+        JPanel tablePanel = new JPanel(new BorderLayout());
+        tablePanel.setOpaque(false);
+        tablePanel.setBorder(BorderFactory.createTitledBorder(
+            BorderFactory.createLineBorder(new Color(220,220,220)),
+            " Riwayat Aktivitas Terbaru ",
+            javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION,
+            javax.swing.border.TitledBorder.DEFAULT_POSITION,
+            new Font("Segoe UI", Font.BOLD, 14), new Color(80,80,80)
+        ));
+        tablePanel.setOpaque(true);
+        tablePanel.setBackground(Color.WHITE);
+
+        String[] activityColumnNames = {"Aktivitas", "Pengguna", "Dokumen", "Tanggal", "Waktu"};
+        activityTableModel = new DefaultTableModel(activityColumnNames, 0);
+        activityTable = new JTable(activityTableModel);
+        setupTableStyle(activityTable, true); // Menggunakan boolean untuk membedakan (opsional)
+        JScrollPane scrollPaneAktivitas = new JScrollPane(activityTable);
+        scrollPaneAktivitas.setBorder(BorderFactory.createEmptyBorder());
+        scrollPaneAktivitas.getViewport().setBackground(Color.WHITE);
+        tablePanel.add(scrollPaneAktivitas, BorderLayout.CENTER);
+        
+        panel.add(tablePanel, BorderLayout.CENTER);
+        return panel;
+    }
+
+    private JPanel createRecycleBinPanel() {
+        JPanel panel = new JPanel(new BorderLayout(10, 10));
+        panel.setBorder(new EmptyBorder(15, 15, 15, 15));
+        panel.setBackground(Color.WHITE);
+
+        JLabel titleLabel = new JLabel("Recycle Bin");
+        titleLabel.setFont(FONT_TITLE_VIEW);
+        titleLabel.setForeground(new Color(50, 50, 50));
+        titleLabel.setBorder(BorderFactory.createEmptyBorder(0,0,10,0));
         panel.add(titleLabel, BorderLayout.NORTH);
 
-        JLabel valueLabel = new JLabel(value, SwingConstants.CENTER);
-        valueLabel.setFont(new Font("Arial", Font.BOLD, 24));
+        String[] recycleBinColumnNames = {"Nama Dokumen", "Pemilik", "Tgl Dihapus", "Path (Internal)"};
+        recycleBinTableModel = new DefaultTableModel(recycleBinColumnNames, 0);
+        recycleBinTable = new JTable(recycleBinTableModel);
+        setupTableStyle(recycleBinTable, true);
+        JScrollPane scrollPaneRecycle = new JScrollPane(recycleBinTable);
+        scrollPaneRecycle.setBorder(BorderFactory.createEmptyBorder());
+        scrollPaneRecycle.getViewport().setBackground(Color.WHITE);
+        panel.add(scrollPaneRecycle, BorderLayout.CENTER);
+
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
+        buttonPanel.setOpaque(false);
+
+        restoreButton = new JButton("Restore Pilihan");
+        styleSuccessButton(restoreButton);
+
+        permanentDeleteButton = new JButton("Hapus Permanen");
+        styleDangerButton(permanentDeleteButton);
+        
+        buttonPanel.add(restoreButton);
+        buttonPanel.add(permanentDeleteButton);
+        panel.add(buttonPanel, BorderLayout.SOUTH);
+
+        return panel;
+    }
+    
+    private void setupTableStyle(JTable table, boolean alignLeft) { // alignLeft opsional
+        table.setFont(FONT_TABLE_CELL_CUSTOM);
+        table.getTableHeader().setFont(FONT_TABLE_HEADER_CUSTOM);
+        table.getTableHeader().setBackground(COLOR_TABLE_HEADER_BG);
+        table.getTableHeader().setForeground(COLOR_TABLE_HEADER_FG);
+        table.setRowHeight(30);
+        table.setGridColor(new Color(224, 224, 224));
+        table.setShowVerticalLines(true); 
+        table.setIntercellSpacing(new Dimension(0, 0));
+        table.setFillsViewportHeight(true);
+
+        for (int i = 0; i < table.getColumnCount(); i++) {
+            table.getTableHeader().getColumnModel().getColumn(i).setHeaderRenderer(new LeftAlignedHeaderRenderer(table.getTableHeader().getDefaultRenderer()));
+        }
+        if (table.getColumnCount() > 0 && table.getColumnName(table.getColumnCount()-1).equals("Aksi")) { 
+             table.getTableHeader().getColumnModel().getColumn(table.getColumnCount()-1).setHeaderRenderer(new CenterAlignedHeaderRenderer(table.getTableHeader().getDefaultRenderer()));
+        }
+    }
+    
+    private static class LeftAlignedHeaderRenderer implements TableCellRenderer { 
+        private TableCellRenderer defaultRenderer;
+        public LeftAlignedHeaderRenderer(TableCellRenderer defaultRenderer) { this.defaultRenderer = defaultRenderer; }
+        @Override public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+            Component c = defaultRenderer.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+            if (c instanceof JLabel) {
+                ((JLabel) c).setHorizontalAlignment(SwingConstants.LEFT);
+                ((JLabel) c).setBorder(BorderFactory.createCompoundBorder(UIManager.getBorder("TableHeader.cellBorder"), new EmptyBorder(0, 8, 0, 5))); // Padding kiri untuk teks header
+            }
+            return c;
+        }
+    }
+    private static class CenterAlignedHeaderRenderer implements TableCellRenderer { 
+        private TableCellRenderer defaultRenderer;
+        public CenterAlignedHeaderRenderer(TableCellRenderer defaultRenderer) { this.defaultRenderer = defaultRenderer; }
+        @Override public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+            Component c = defaultRenderer.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+            if (c instanceof JLabel) { ((JLabel) c).setHorizontalAlignment(SwingConstants.CENTER); }
+            return c;
+        }
+    }
+
+
+    private void stylePrimaryButton(JButton button) {
+        button.setFont(FONT_ACTION_BUTTON);
+        button.setBackground(COLOR_PRIMARY_ACTION_BG);
+        button.setForeground(COLOR_BUTTON_TEXT_LIGHT);
+        button.setOpaque(true);
+        button.setBorderPainted(false);
+        button.setFocusPainted(false);
+        button.setBorder(BorderFactory.createEmptyBorder(8, 18, 8, 18));
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+    }
+
+    private void styleSuccessButton(JButton button) {
+        button.setFont(FONT_ACTION_BUTTON);
+        button.setBackground(COLOR_SUCCESS_ACTION_BG);
+        button.setForeground(COLOR_BUTTON_TEXT_LIGHT);
+        button.setOpaque(true);
+        button.setBorderPainted(false);
+        button.setFocusPainted(false);
+        button.setBorder(BorderFactory.createEmptyBorder(8, 18, 8, 18));
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+    }
+
+    private void styleWarningButton(JButton button) {
+        button.setFont(FONT_ACTION_BUTTON);
+        button.setBackground(COLOR_WARNING_ACTION_BG);
+        button.setForeground(COLOR_BUTTON_TEXT_DARK);
+        button.setOpaque(true);
+        button.setBorderPainted(false);
+        button.setFocusPainted(false);
+        button.setBorder(BorderFactory.createEmptyBorder(8, 18, 8, 18));
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+    }
+
+    private void styleDangerButton(JButton button) {
+        button.setFont(FONT_ACTION_BUTTON);
+        button.setBackground(COLOR_DANGER_ACTION_BG);
+        button.setForeground(COLOR_BUTTON_TEXT_LIGHT);
+        button.setOpaque(true);
+        button.setBorderPainted(false);
+        button.setFocusPainted(false);
+        button.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15)); // Samakan padding dengan sidebar button jika perlu
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+    }
+
+    private JPanel createInfoCard(String title, JLabel valueLabel) {
+        JPanel panel = new JPanel(new BorderLayout(5, 5));
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(230,230,230)),
+            BorderFactory.createEmptyBorder(15, 20, 15, 20))
+        );
+
+        JLabel titleLabel = new JLabel(title);
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        titleLabel.setForeground(new Color(100, 100, 100));
+        panel.add(titleLabel, BorderLayout.NORTH);
+
+        valueLabel.setFont(new Font("Segoe UI", Font.BOLD, 30));
+        valueLabel.setForeground(new Color(52, 73, 94));
+        valueLabel.setBorder(BorderFactory.createEmptyBorder(5,0,0,0));
         panel.add(valueLabel, BorderLayout.CENTER);
 
         return panel;
     }
-
-    // Metode untuk menambahkan aktivitas ke tabel (dapat dipanggil oleh controller)
-    public void addActivity(String activity, String date, String time) {
-        tableModel.addRow(new Object[]{activity, date, time});
+    
+    public void showPanel(String panelName) {
+        if (cardLayout != null && mainContentArea != null) {
+            cardLayout.show(mainContentArea, panelName);
+        }
     }
 
-    // Metode untuk menyegarkan tabel (kosongkan dan isi ulang)
-    public void refreshTable() {
-        tableModel.setRowCount(0); // Kosongkan tabel
-        // Tambahkan data awal kembali (bisa diganti dengan data dinamis)
-        addActivity("Menambah File", "2025-04-23", "23:00");
-        addActivity("Mengubah Isi 'excel.xlsx'", "2025-04-23", "23:00");
+    public void updateInfoCards(int documentCount, int accessCount) {
+        if (cardJumlahDokumenValue != null) cardJumlahDokumenValue.setText(String.valueOf(documentCount));
+        if (cardAccessValue != null) cardAccessValue.setText(String.valueOf(accessCount));
     }
 
-    public JFrame getDashboardFrame() {
-        return dashboardFrame;
+    public void addActivity(String activity, String user, String document, String date, String time) {
+        if (activityTableModel != null) activityTableModel.addRow(new Object[]{activity, user, document, date, time});
+    }
+    public void clearActivityTable() {
+        if (activityTableModel != null) activityTableModel.setRowCount(0);
     }
 
-    public JButton getLogoutButton() {
-        return logoutButton;
+    public void addRecycledDocumentToTable(String docName, String owner, String dateDeleted, String path) {
+        if (recycleBinTableModel != null) recycleBinTableModel.addRow(new Object[]{docName, owner, dateDeleted, path});
+    }
+    public void clearRecycleBinTable() {
+        if (recycleBinTableModel != null) recycleBinTableModel.setRowCount(0);
+    }
+    public int getSelectedRecycleBinTableRow() {
+        return recycleBinTable != null ? recycleBinTable.getSelectedRow() : -1;
+    }
+    public String getDocumentNameFromRecycleBinTable(int row) {
+        if (recycleBinTable != null && row >= 0 && row < recycleBinTableModel.getRowCount()) {
+            return (String) recycleBinTableModel.getValueAt(row, 0);
+        }
+        return null;
     }
 
-    public JButton getDocumentButton() {
-        return documentButton;
+    public void updateWelcomeMessage(String username) {
+        if (userLabel != null) {
+            userLabel.setText("Halo, " + username + "!");
+        }
     }
 
-    public JButton getFriendsButton() {
-        return friendsButton;
-    }
-
-    public JButton getLoginHistoryButton() {
-        return loginHistoryButton;
-    }
-
-    public JButton getUserButton() {
-        return userButton;
-    }
-
-    public JButton getSettingsButton() {
-        return settingsButton;
-    }
-
-    public JButton getProfileButton() {
-        return profileButton;
-    }
-
-    public JButton getRefreshButton() {
-        return refreshButton;
-    }
+    public JFrame getDashboardFrame() { return dashboardFrame; }
+    public JButton getLogoutButton() { return logoutButton; }
+    public JButton getDocumentButton() { return documentButton; }
+    public JButton getRecycleBinButton() { return recycleBinButton; }
+    public JButton getRefreshButton() { return refreshButton; }
+    public JButton getProfileButton() { return profileButton; } // Getter untuk tombol Profile
+    public JButton getSharedDocumentsButton() { return sharedDocumentsButton; } // Getter untuk tombol Shared Documents
+    public JButton getRestoreButton() { return restoreButton; }
+    public JButton getPermanentDeleteButton() { return permanentDeleteButton; }
+    public DefaultTableModel getActivityTableModel() { return activityTableModel; }
+    public DefaultTableModel getRecycleBinTableModel() { return recycleBinTableModel; }
 }
